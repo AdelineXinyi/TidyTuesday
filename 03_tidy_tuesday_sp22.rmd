@@ -1,0 +1,139 @@
+---
+title: 'Tidy Tuesday #3'
+author: "Xinyi Li"
+output: 
+  html_document:
+    df_print: paged
+    code_download: true
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
+```
+
+```{r libraries}
+library(tidyverse)     # for graphing and data cleaning
+library(lubridate)     # for date manipulation
+library(ggthemes)      # for even more plotting themes
+theme_set(theme_minimal()) # My favorite ggplot() theme :)
+
+library(tidyverse)     # for data cleaning and plotting
+library(lubridate)     # for date manipulation
+library(openintro)     # for the abbr2state() function
+library(palmerpenguins)# for Palmer penguin data
+library(maps)          # for map data
+library(ggmap)         # for mapping points on maps
+library(gplots)        # for col2hex() function
+library(RColorBrewer)  # for color palettes
+library(sf)            # for working with spatial data
+library(carData)       # for Minneapolis police stops data
+library(ggthemes)      # for more themes (including theme_map())
+library(googlesheets4) # for reading googlesheet data
+
+```
+
+## Data choice 1: Freedom Data
+
+```{r}
+# Read in the data
+
+freedom <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-02-22/freedom.csv')
+
+# If the code above gives an error, uncomment the code below and use it instead. 
+# You will need to install the tidytuesdayR package first.
+
+# library(tidytuesdayR)
+# 
+# tuesdata <- tidytuesdayR::tt_load('2022-02-22')
+# tuesdata <- tidytuesdayR::tt_load(2022, week = 8)
+# 
+# freedom <- tuesdata$freedom
+```
+
+This week's data is about civil freedoms around the world. Read more about it, including definitions of variables, [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2022/2022-02-22/readme.md). 
+
+## Data choice 2: Alternative fuel stations
+
+```{r}
+
+# Read in the data
+
+stations <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-03-01/stations.csv')
+
+# If the code above gives an error, uncomment the code below and use it instead. 
+# You will need to install the tidytuesdayR package first.
+
+# library(tidytuesdayR)
+# 
+# tuesdata <- tidytuesdayR::tt_load('2022-03-01')
+# tuesdata <- tidytuesdayR::tt_load(2022, week = 9)
+# 
+# stations <- tuesdata$stations
+
+stations %>% 
+  group_by(FACILITY_TYPE) %>% 
+  summarise(n=n()) %>% 
+  arrange(desc(n))
+```
+
+Read more about the Alternative fuel stations data, including definitions of variables, [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2022/2022-03-01/readme.md). 
+
+**Try to visualize:Alternative fuel stations' special facility(choose 5 facility type) distribution**
+```{r,fig.alt="Fuel station position",fig.width=8}
+us<-map_data("state")
+stations<-stations %>% 
+  filter(X>=-140,X<=-50,Y<=65,
+         FACILITY_TYPE%in%c("FUEL_RESELLER","CONVENIENCE_STORE","CAR_DEALER","MUNI_GOV","FED_GOV","RENTAL_CAR_RETURN","CAR_DEALER","HOTEL")) %>% 
+  mutate(state_name = str_to_lower(abbr2state(`STATE`))) %>% 
+  group_by(state_name) %>% 
+  mutate(stations=n())
+  
+stations %>% 
+  ggplot() +
+  geom_map(map = us ,
+           aes(map_id = state_name, 
+               fill = stations)) + 
+  expand_limits(x = us$long , y =us$lat) + 
+  geom_point(data = stations %>% filter(COUNTRY == "US", !(`state_name` %in% c("hawaii","alaska"))) ,
+             aes(x = X, y = Y,
+             color = FACILITY_TYPE),
+             size = .05,
+             alpha = .2) +
+  guides(colour = guide_legend(override.aes = list(size=8)))+
+  labs(title="Alternative fuel stations' special facility distribution among US",
+       color = "Facility Type",
+       fill="stations total number",
+       caption = "Chose 5 facility types with most stations for viewing.
+       Created by Xinyi, Data from US DOT.")+
+  theme(legend.background = element_blank(),
+        plot.background = element_rect(fill = "#ede2d1", color = "#8c7b5f"),
+        plot.title = element_text(face="bold",size=14,hjust=0.5),
+        panel.grid = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(), 
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(), 
+        axis.ticks.y=element_blank())+
+  theme(plot.caption.position = "plot",
+        plot.caption = element_text(hjust = 1,colour = "darkgray"))
+
+#next time: try geom_bar+coord_polar and grid arrange
+#change legend.key
+#enlarge points on plot?
+```
+
+
+
+
+
+
+
+
+## Instructions and tips
+
+ake a minute to plan out on paper or the white board what you want your plot to look like and then dive into the code. And make sure to read about what the variables are first! 
+
+When you are finished, please delete all the unneeded code and instructions and uncomment (delete the `#`) in the options section of code at the top. If you feel up for it, we encourage you to tweet out your graph with the `#TidyTuesday` hashtag and tag `@lisalendway` (Prof. Lisa) and `@Sintripetal` (Prof. Lauren). See the Tidy Tuesday description file if you want to use our `@MacTidyTuesday` Twitter account to do that. PLEASE take a moment to read the message at the top about alt text. If you want to post on Twitter, be sure to add that. If you need help, ask. Also, consider adding a caption or tag label with your name and source of the dataset. You can do this by adding something like: `labs(caption = "Plot created by YOURNAME, data from DATASOURCE")` to your plot code.
+
